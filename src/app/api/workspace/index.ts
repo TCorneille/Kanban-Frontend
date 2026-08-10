@@ -23,8 +23,32 @@ export interface AddMemberPayload {
   role?: 'owner' | 'admin' | 'member' | string;
 }
 
+// 1. Interface for the dashboard stats response
+export interface IDashboardStats {
+  workspaces: number;
+  openTasks: number;
+  completedTasks: number;
+  overdueTasks: number;
+}
+
 export const workspaceApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    // 2. Query endpoint for fetching stats
+    getDashboardStats: builder.query<IDashboardStats, void>({
+      query: () => '/api/v1/workspaces/stats',
+      transformResponse: (response: any): IDashboardStats => {
+        return (
+          response?.data || {
+            workspaces: 0,
+            openTasks: 0,
+            completedTasks: 0,
+            overdueTasks: 0,
+          }
+        );
+      },
+      providesTags: ['Workspace', 'Board', 'Task'], // Invalidates when workspace or tasks change
+    }),
+
     getUserWorkspaces: builder.query<IWorkspace[], void>({
       query: () => '/api/v1/workspaces',
       transformResponse: (response: any): IWorkspace[] => {
@@ -78,7 +102,6 @@ export const workspaceApi = apiSlice.injectEndpoints({
           throw new Error('Workspace ID is missing or undefined.');
         }
 
-        // Construct clean payload ensuring role is always present and undefined fields are stripped
         const body: Record<string, any> = { role };
         if (email) body.email = email;
         if (userId) body.userId = userId;
@@ -119,7 +142,9 @@ export const workspaceApi = apiSlice.injectEndpoints({
   }),
 });
 
+// 3. Export hook alongside existing hooks
 export const {
+  useGetDashboardStatsQuery,
   useGetUserWorkspacesQuery,
   useGetWorkspaceByIdQuery,
   useCreateWorkspaceMutation,

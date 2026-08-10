@@ -1,4 +1,3 @@
-import type { MouseEvent } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import { BsLayers } from "react-icons/bs";
@@ -8,8 +7,7 @@ function Layout() {
   const [logout, { isLoading }] = useLogoutMutation();
   const navigate = useNavigate();
 
-  const handleLogout = async (e: MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
+  const handleLogout = async () => {
     try {
       await logout().unwrap();
       // Optional: Clear tokens or state here if not handled automatically in RTK Query
@@ -27,7 +25,7 @@ function Layout() {
         actions={[
           {
             label: "Dashboard",
-            to: "/dashboard",
+            to: "/home/dashboard",
             className:
               "flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-xl text-gray-50 hover:text-gray-900 transition-colors",
           },

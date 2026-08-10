@@ -1,34 +1,53 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom'; // 1. Import useNavigate
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSignupMutation, useLoginMutation } from '../app/api/auth';
 
 export default function AuthCard() {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signup');
+  const [searchParams] = useSearchParams();
+  // Default to 'signin', or read from URL query param (e.g. /auth?mode=signup)
+  const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin';
+  const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const navigate = useNavigate(); // 2. Initialize the hook
+  const navigate = useNavigate();
 
-  const [signup, { isLoading: isSigningUp, error: signupError }] = useSignupMutation();
-  const [login, { isLoading: isLoggingIn, error: loginError }] = useLoginMutation();
+  const [signup, { isLoading: isSigningUp, error: signupError, reset: resetSignup }] = useSignupMutation();
+  const [login, { isLoading: isLoggingIn, error: loginError, reset: resetLogin }] = useLoginMutation();
 
   const isLoading = isSigningUp || isLoggingIn;
   const currentError = mode === 'signup' ? signupError : loginError;
+
+  const handleModeSwitch = (newMode: 'signin' | 'signup') => {
+    setMode(newMode);
+    resetSignup();
+    resetLogin();
+  };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
     try {
+      let res: any;
       if (mode === 'signup') {
-        // 3. Chain unwrap() and navigate on resolution
-        await signup({ fullName, email, password }).unwrap();
+        res = await signup({
+          name: fullName,
+          email,
+          password,
+          confirmPassword: password,
+        }).unwrap();
       } else {
-        await login({ email, password }).unwrap();
+        res = await login({ email, password }).unwrap();
       }
 
-      // 4. Redirect with replace: true to prevent back-button returning to auth
+      // 1. SAVE TOKEN SYNCHRONOUSLY BEFORE NAVIGATING
+      const token = res?.token || res?.accessToken || res?.data?.token || 'true';
+      localStorage.setItem('token', token);
+
+      // 2. NAVIGATE TO DASHBOARD
       navigate('/home/dashboard', { replace: true });
     } catch (err) {
       console.error('Authentication failed:', err);
@@ -46,10 +65,11 @@ export default function AuthCard() {
 
   return (
     <div className="w-full max-w-md rounded-2xl border border-zinc-800/80 bg-[#12141a] p-6 text-left shadow-2xl">
+      {/* Mode Switch Tabs */}
       <div className="flex rounded-xl bg-[#1b1e26] p-1 mb-6">
         <button
           type="button"
-          onClick={() => setMode('signin')}
+          onClick={() => handleModeSwitch('signin')}
           className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
             mode === 'signin'
               ? 'bg-[#0f1115] text-white shadow-sm'
@@ -60,7 +80,7 @@ export default function AuthCard() {
         </button>
         <button
           type="button"
-          onClick={() => setMode('signup')}
+          onClick={() => handleModeSwitch('signup')}
           className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
             mode === 'signup'
               ? 'bg-[#0f1115] text-white shadow-sm'
@@ -71,12 +91,14 @@ export default function AuthCard() {
         </button>
       </div>
 
+      {/* Error Message */}
       {currentError && (
         <div className="mb-4 rounded-lg bg-red-500/10 border border-red-500/20 p-3 text-xs text-red-400">
           {getErrorMessage(currentError)}
         </div>
       )}
 
+      {/* Auth Form */}
       <form onSubmit={handleSubmit} className="space-y-4">
         {mode === 'signup' && (
           <div className="space-y-1.5">
@@ -138,7 +160,7 @@ export default function AuthCard() {
         <button
           type="submit"
           disabled={isLoading}
-          className="mt-2 w-full rounded-xl bg-primary py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-[#12141a] disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-2 w-full rounded-xl bg-amber-500 py-3 text-sm font-semibold text-zinc-950 transition-colors hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 focus:ring-offset-[#12141a] disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading
             ? 'Processing...'

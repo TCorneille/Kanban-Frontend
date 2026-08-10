@@ -30,15 +30,16 @@ export const TasksPage: React.FC<{ boardId?: string }> = ({ boardId: propBoardId
     propBoardId ||
     params.boardId ||
     params.id ||
-    '64f1a2b3c4d5e6f7a8b9c0d1';
+    '';
 
   const { data, isLoading, isError, error } = useGetTasksByBoardQuery(activeBoardId, {
     skip: !activeBoardId,
   });
   const [moveTask] = useMoveTaskMutation();
 
-  const tasks: ITask[] = data?.data?.tasks || [];
-  const boardName: string = data?.data?.boardTitle || data?.data?.title || 'Board Tasks';
+  const boardData = data?.data as { boardTitle?: string; title?: string; tasks?: ITask[] } | undefined;
+  const tasks: ITask[] = boardData?.tasks || [];
+  const boardName: string = boardData?.boardTitle || boardData?.title || 'Board Tasks';
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

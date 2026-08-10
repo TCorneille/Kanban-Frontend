@@ -1,28 +1,23 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import MembersCard from "../components/MembersCard";
-import ActivityCard from "../components/ActivityCard";
-import TasksCard from "../components/TasksCard";
 import {
   useGetBoardsQuery,
   useCreateBoardMutation,
 } from "../app/api/board";
 
-function BoardPage() {
+function AllBoardsPage() {
   const { workspaceId = "" } = useParams<{ workspaceId?: string }>();
   const navigate = useNavigate();
   const [boardTitle, setBoardTitle] = useState("");
 
-  // Fetch boards using workspaceId
   const {
     data: boardsResponse,
     isLoading: isLoadingBoards,
     isError: isGetError,
   } = useGetBoardsQuery(workspaceId, {
-    skip: !workspaceId, // Avoid querying without a valid workspaceId
+    skip: !workspaceId,
   });
 
-  // Board creation mutation
   const [createBoard, { isLoading: isCreating }] = useCreateBoardMutation();
 
   const handleAddBoard = async (e: React.FormEvent) => {
@@ -41,15 +36,27 @@ function BoardPage() {
   };
 
   const boards = boardsResponse?.data?.boards || [];
-  const latestBoards = boards.slice(0, 4);
 
   return (
-    <>
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Navigation Breadcrumb / Back Button */}
+      <button
+        onClick={() => navigate(-1)}
+        className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white mb-6 transition-colors"
+      >
+        &larr; Back to Dashboard
+      </button>
+
       {/* Header & Add Board Form */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-12 gap-4 sm:gap-8">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {workspaceId ? "Workspace Boards" : "All Boards"}
-        </h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+            All Workspace Boards
+          </h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Total {boards.length} {boards.length === 1 ? "board" : "boards"}
+          </p>
+        </div>
 
         <form
           onSubmit={handleAddBoard}
@@ -72,11 +79,11 @@ function BoardPage() {
         </form>
       </div>
 
-      {/* Boards List / Grid Section */}
+      {/* Complete Boards Grid */}
       <div className="mt-8">
         {isLoadingBoards && (
           <p className="text-gray-500 dark:text-gray-400 text-sm">
-            Loading boards...
+            Loading all boards...
           </p>
         )}
 
@@ -86,21 +93,19 @@ function BoardPage() {
           </p>
         )}
 
-        {!isLoadingBoards && !isGetError && latestBoards.length === 0 && (
+        {!isLoadingBoards && !isGetError && boards.length === 0 && (
           <p className="text-gray-500 dark:text-gray-400 text-sm">
             No boards found in this workspace. Create one above to get started!
           </p>
         )}
 
-        {!isLoadingBoards && latestBoards.length > 0 && (
+        {!isLoadingBoards && boards.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {latestBoards.map((board) => (
+            {boards.map((board) => (
               <div
                 key={board._id}
-                onClick={() =>
-                  navigate(`/home/boards/${board._id}/tasks`)
-                }
-                className="p-5 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all border-l-4 border-l-primary"
+                onClick={() => navigate(`/home/boards/${board._id}/tasks`)}
+                className="p-5 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm hover:shadow-md cursor-pointer transition-all border-l-4 border-l-primary hover:-translate-y-0.5"
               >
                 <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2 truncate">
                   {board.title}
@@ -112,29 +117,9 @@ function BoardPage() {
             ))}
           </div>
         )}
-
-        {/* View All Boards Button Redirect */}
-        {!isLoadingBoards && boards.length > 4 && (
-          <button
-            onClick={() => navigate(`/home/workspaces/${workspaceId}/boards`)}
-            className="mt-6 text-sm px-5 py-2.5 rounded-xl font-medium border border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200 shadow-sm"
-          >
-            View All Boards ({boards.length})
-          </button>
-        )}
       </div>
-
-      {/* Workspace Secondary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 mt-12 gap-8 items-stretch">
-        <MembersCard workspaceId={workspaceId} />
-        <ActivityCard />
-      </div>
-
-      <div className="mt-12">
-        <TasksCard />
-      </div>
-    </>
+    </div>
   );
 }
 
-export default BoardPage;
+export default AllBoardsPage;
